@@ -12,13 +12,6 @@ import telegram
 
 
 load_dotenv()
-logging.basicConfig(
-    level=logging.DEBUG,
-    filename='main.log',
-    format='%(funcName)s, %(lineno)s, %(levelname)s, %(message)s',
-    filemode='w'
-)
-logger = logging.getLogger(__name__)
 
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
@@ -46,11 +39,11 @@ def send_message(bot, message):
     """
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
-        logger.info(
+        logging.info(
             f'Сообщение отправлено в телеграм чат {TELEGRAM_CHAT_ID}:{message}'
         )
     except Exception as error:
-        logger.exception(f'Cбой при отправке сообщения в Telegram: {error}')
+        logging.exception(f'Cбой при отправке сообщения в Telegram: {error}')
         raise error(f'Cбой при отправке сообщения в Telegram: {error}')
 
 
@@ -68,12 +61,12 @@ def get_api_answer(current_timestamp):
                                 params=params
                                 )
     except Exception as error:
-        logger.error(f'Ошибка при запросе к эндпоинту API-сервиса: {error}')
+        logging.error(f'Ошибка при запросе к эндпоинту API-сервиса: {error}')
         raise error('get() missing 1 required positional argument')
 
     status_code = response.status_code
     if status_code != HTTPStatus.OK:
-        logger.error(f'Недоступность эндпоинта {status_code}')
+        logging.error(f'Недоступность эндпоинта {status_code}')
         raise Exception(f'Недоступность эндпоинта {status_code}')
     return response.json()
 
@@ -90,12 +83,12 @@ def check_response(response):
     try:
         list_homeworks = response['homeworks']
     except KeyError as error:
-        logger.error(f'Ошибка словаря по ключу homeworks {error}')
+        logging.error(f'Ошибка словаря по ключу homeworks {error}')
         raise KeyError(f'Ошибка словаря по ключу homeworks {error}')
     try:
         homework = list_homeworks[0]
     except IndexError as error:
-        logger.error(f'Список домашних работ пуст {error}')
+        logging.error(f'Список домашних работ пуст {error}')
         raise IndexError(f'Список домашних работ пуст {error}')
     return homework
 
@@ -115,7 +108,7 @@ def parse_status(homework):
     try:
         verdict = HOMEWORK_STATUSES[homework_status]
     except Exception as error:
-        logger.error(f'Недокументированный статус ДЗ {error}')
+        logging.error(f'Недокументированный статус ДЗ {error}')
         raise Exception(f'Недокументированный статус ДЗ {error}')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
@@ -130,7 +123,7 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = (int(time.time() - MONTH_PERIOD))
     if not check_tokens():
-        logger.critical('TOKEN_NOT_FOUND')
+        logging.critical('TOKEN_NOT_FOUND')
         raise ValueError('Отсутствуют одна или несколько переменных окружения')
 
     while True:
@@ -141,20 +134,18 @@ def main():
                 send_message(bot, parse_status(homework))
             current_timestamp = response.get('current_date', current_timestamp)
         except Exception as error:
-            logger.error(f'Сбой в работе программы: {error}')
+            logging.error(f'Сбой в работе программы: {error}')
         time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)
-
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-
-    formatter = logging.Formatter(
-        fmt='[%(asctime)s: %(levelname)s] %(message)s'
-        )
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    logging.basicConfig(
+        level=logging.DEBUG,
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(__file__ + '.log', encoding='UTF-8')],
+        format=(
+            '%(asctime)s, %(levelname)s, %(funcName)s, %(lineno)d, %(message)s'
+        ))
 
     main()
