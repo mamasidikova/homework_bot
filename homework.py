@@ -3,7 +3,6 @@ import os
 import sys
 import time
 from http import HTTPStatus
-from logging import Formatter
 
 from dotenv import load_dotenv
 
@@ -20,14 +19,7 @@ logging.basicConfig(
     filemode='w'
 )
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
-handler = logging.StreamHandler(sys.stdout)
-sys.stdout.reconfigure(encoding='utf-8')
-
-handler.setFormatter(
-    Formatter(fmt='[%(asctime)s: %(levelname)s] %(message)s'))
-logger.addHandler(handler)
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
@@ -93,7 +85,7 @@ def check_response(response):
     При ожидаемом ответе, вернуть список домашних
     работ по ключу ['homeworks']
     """
-    if type(response) is not dict:
+    if not isinstance(response, dict):
         raise TypeError('Ответ API не является словарём')
     try:
         list_homeworks = response['homeworks']
@@ -154,4 +146,15 @@ def main():
 
 
 if __name__ == '__main__':
+    logger.setLevel(logging.DEBUG)
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter(
+        fmt='[%(asctime)s: %(levelname)s] %(message)s'
+        )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
     main()
