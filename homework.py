@@ -99,9 +99,9 @@ def parse_status(homework):
         raise Exception('Отсутствует ключ "status" в ответе API')
     homework_name = homework['homework_name']
     homework_status = homework['status']
-    if 'homework_status' not in HOMEWORK_STATUSES:
-        logging.error('Недокументированный статус ДЗ')
-        raise Exception('Недокументированный статус ДЗ')
+    if homework_status not in HOMEWORK_STATUSES:
+        logging.error(f'Недокументированный статус ДЗ: {homework_status}')
+        raise Exception(f'Недокументированный статус ДЗ: {homework_status}')
     verdict = HOMEWORK_STATUSES[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
