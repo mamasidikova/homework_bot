@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 
 import requests
 
+from settings import ENDPOINT, HOMEWORK_STATUSES, RETRY_TIME
+
 import telegram
 
 
@@ -17,16 +19,7 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-RETRY_TIME = 600
-MONTH_PERIOD = 15925248
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-
-HOMEWORK_STATUSES = {
-    'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
-    'reviewing': 'Работа взята на проверку ревьюером.',
-    'rejected': 'Работа проверена: у ревьюера есть замечания.'
-}
 
 
 def send_message(bot, message):
@@ -40,7 +33,7 @@ def send_message(bot, message):
         logging.info(
             f'Сообщение отправлено в телеграм чат {TELEGRAM_CHAT_ID}:{message}'
         )
-    except Exception as error:
+    except telegram.TelegramError as error:
         logging.exception(f'Cбой при отправке сообщения в Telegram: {error}')
         raise error(f'Cбой при отправке сообщения в Telegram: {error}')
 
@@ -62,11 +55,14 @@ def get_api_answer(current_timestamp):
         logging.error(f'Ошибка при запросе к эндпоинту API-сервиса: {error}')
         raise error('get() missing 1 required positional argument')
 
-    status_code = response.status_code
-    if status_code != HTTPStatus.OK:
-        logging.error(f'Недоступность эндпоинта {status_code}')
-        raise Exception(f'Недоступность эндпоинта {status_code}')
-    return response.json()
+    if response.status_code != HTTPStatus.OK:
+        logging.error(f'Недоступность эндпоинта {response.status_code}')
+        raise Exception(f'Недоступность эндпоинта {response.status_code}')
+    try:
+        return response.json()
+    except ValueError:
+        logging.error('Ответ не соответствует формату json')
+        raise ValueError('Ответ не соответствует формату json')
 
 
 def check_response(response):
@@ -78,16 +74,16 @@ def check_response(response):
     """
     if not isinstance(response, dict):
         raise TypeError('Ответ API не является словарём')
-    try:
-        list_homeworks = response['homeworks']
-    except KeyError as error:
-        logging.error(f'Ошибка словаря по ключу homeworks {error}')
-        raise KeyError(f'Ошибка словаря по ключу homeworks {error}')
-    try:
-        homework = list_homeworks[0]
-    except IndexError as error:
-        logging.error(f'Список домашних работ пуст {error}')
-        raise IndexError(f'Список домашних работ пуст {error}')
+    if 'homeworks' not in response:
+        logging.error('Ключ homeworks отсутствует в словаре')
+        raise KeyError('Ключ homeworks отсутствует в словаре')
+    list_homeworks = response['homeworks']
+    if not isinstance(list_homeworks, list):
+        raise TypeError('Домашние работы не приходят списком')
+    if len(list_homeworks) == 0:
+        logging.error('Список домашних работ пуст')
+        raise IndexError('Список домашних работ пуст')
+    homework = list_homeworks[0]
     return homework
 
 
@@ -103,11 +99,10 @@ def parse_status(homework):
         raise Exception('Отсутствует ключ "status" в ответе API')
     homework_name = homework['homework_name']
     homework_status = homework['status']
-    try:
-        verdict = HOMEWORK_STATUSES[homework_status]
-    except Exception as error:
-        logging.error(f'Недокументированный статус ДЗ {error}')
-        raise Exception(f'Недокументированный статус ДЗ {error}')
+    if 'homework_status' not in HOMEWORK_STATUSES:
+        logging.error('Недокументированный статус ДЗ')
+        raise Exception('Недокументированный статус ДЗ')
+    verdict = HOMEWORK_STATUSES[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
