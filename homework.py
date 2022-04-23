@@ -13,7 +13,6 @@ import telegram
 
 load_dotenv()
 
-
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
@@ -22,7 +21,6 @@ RETRY_TIME = 600
 MONTH_PERIOD = 15925248
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-
 
 HOMEWORK_STATUSES = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
@@ -51,7 +49,7 @@ def get_api_answer(current_timestamp):
     """Запросить эндпоинт API-сервиса.
     аргументы:
         current_timestamp: временная метка.
-    При HTTPStatus.OK возвратить responce в формате json().
+    При HTTPStatus.OK возвратить response в формате json().
     """
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
@@ -125,7 +123,6 @@ def main():
     if not check_tokens():
         logging.critical('TOKEN_NOT_FOUND')
         raise ValueError('Отсутствуют одна или несколько переменных окружения')
-
     while True:
         try:
             response = get_api_answer(current_timestamp)
