@@ -119,7 +119,7 @@ def check_tokens():
 def main():
     """Основная логика работы бота."""
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = (int(time.time() - MONTH_PERIOD))
+    current_timestamp = int(time.time())
     if not check_tokens():
         logging.critical('TOKEN_NOT_FOUND')
         raise ValueError('Отсутствуют одна или несколько переменных окружения')
