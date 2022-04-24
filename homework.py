@@ -113,11 +113,11 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = int(time.time())
     if not check_tokens():
         logging.critical('TOKEN_NOT_FOUND')
         raise ValueError('Отсутствуют одна или несколько переменных окружения')
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    current_timestamp = int(time.time())
     while True:
         try:
             response = get_api_answer(current_timestamp)
